@@ -16,8 +16,8 @@ This works like HAProxy, but with maintaining a pool of pre-exisiting connection
 * works on MAC, linux, openWRT
 
 ## Build
-```./build_all_platforms.sh```
-or download from releases.
+```./build_all_platforms.sh``` 
+or download from [Releases](https://github.com/c2h2/preconnect-balproxy/releases).
 
 ## Run
 listen ipv4 :1234, randomly forward to one of three servers, with 50 spare preconnected connections.
