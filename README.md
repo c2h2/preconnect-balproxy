@@ -1,7 +1,13 @@
 # preconnect-balproxy
 Go TCP load balancing with preconnect for lower latency. it will preconnect to remote server(s). and detect dead connections.
 
-This works like HAProxy, but with maintaining a pool of pre-exisiting connections to remote server(s). Latenecy of any new local connections will be reduced by around a PING cost (50ms PING -> around 100ms reduction, compare to HAProxy due to initializing TCP handshake beforehand).  It can also hanndle very high amount of concurrency. and forwarding data with kernel level effiency.
+This works like HAProxy, but with maintaining a pool of pre-exisiting connections to remote server(s). Latency of any new local connections will be reduced by around a PING cost (50ms PING -> around 100ms reduction). some features:
+
+* pre-establish TCP connection, reduce TCP handshake time.
+* minimal cpu and memory impact.
+* utilize multicore CPUs.
+* handling very high amount of concurrency. (10K+)
+* forwarding data with kernel level effiency.
 
 ## Use cases
 * backend load balancing
