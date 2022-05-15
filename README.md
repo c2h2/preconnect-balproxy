@@ -20,13 +20,17 @@ This works like HAProxy, but with maintaining a pool of pre-exisiting connection
 or download from [Releases](https://github.com/c2h2/preconnect-balproxy/releases).
 
 ## Run
-listen ipv4 :1234, randomly forward to one of three servers, with 50 spare preconnected connections.
+Listen locally ipv4 :1234, randomly forward to one of three servers, with 100 spare preconnected connections.
 
-```builds/preconnect_balproxy-linux-arm64 -b 0.0.0.0:1234 -r 127.0.0.1:1077 -r 192.168.200.1:1077 -r 192.168.200.1:10123 -c 50```
+```shell
+ulimit -S -n 102400
+builds/preconnect_balproxy-linux-arm64 -b 0.0.0.0:1234 -r 127.0.0.1:1077 -r 192.168.200.1:1077 -r 192.168.200.1:10123 -c 100
+```
 
-## Tune on linux/openwrt
-You may want to tune up the limit of open files
-```ulimit -n 99999``` 
+## Tuning
+note: preconnect-balproxy needs lots of open file descriptors while running so we need to increase ```ulimit -S -n 1024000``` . That works for both MacOS and Linux: 
+
+If you still get **"too many open files"** error, try increasing the value.
 
 ## TODO
 * to handle subscribe link and automatically combine links with the same encryptions.
