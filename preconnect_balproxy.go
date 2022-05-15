@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var maxConnPool int
+var spareMaxConnPool int
 var remts chan net.Conn
 var sem chan int
 var activeProxyCnt *int32 = new(int32)
@@ -39,19 +39,20 @@ var remoteBackupSrvs arrayFlags
 
 func main() {
 	bindAddr := flag.String("b", "0.0.0.0:1234", "Program bind address, default 0.0.0.0:1234")
-	maxConnPool = *flag.Int("c", 64, "How many remote connections stay open in advance, default: 64")
+	_spareMaxConnPool := flag.Int("c", 64, "How many spare remote connections stay open in advance, default: 64")
 	flag.Var(&remoteSrvs, "r", "remote address(es) use more than once, example: -r 127.0.0.1:3128 -r 127.0.0.1:8118")
 	flag.Var(&remoteBackupSrvs, "rb", "remote backup address(es) use more than once, example: -rb 127.0.0.1:3128 -rb 127.0.0.1:8118") //TODO implement.
 
 	flag.Parse()
 	originalRemoteServs = remoteSrvs //copy to original servers
+	spareMaxConnPool = *_spareMaxConnPool
 
 	if len(remoteSrvs) == 0 {
 		fmt.Println("Need at least one -r flag to run.\n example: go run balproxy.go -b 0.0.0.0:1234 -r 192.168.200.1:1077 -r 192.168.200.1:1078")
 		os.Exit(1)
 	}
-	remts = make(chan net.Conn, maxConnPool)
-	sem = make(chan int, maxConnPool)
+	remts = make(chan net.Conn, spareMaxConnPool)
+	sem = make(chan int, spareMaxConnPool)
 	proxy, err := net.Listen("tcp", *bindAddr)
 	fmt.Print("Listening " + *bindAddr + ", Remote Servers: ")
 	fmt.Println(remoteSrvs)
@@ -66,7 +67,9 @@ func main() {
 
 func heartbeat() {
 	for {
-		fmt.Printf("Active Remote TCP: %d, Active Proxy TCP: %d, Up_Servers:", atomic.LoadInt32(activeRemoteTCPCnt), atomic.LoadInt32(activeProxyCnt))
+		pconn := atomic.LoadInt32(activeRemoteTCPCnt)
+		rconn := atomic.LoadInt32(activeProxyCnt)
+		fmt.Printf("Proxy_Conn: %d, Remote_Conn: %d, Spare_Conn: %d, Up_Remotes: ", pconn, rconn, pconn-rconn)
 		fmt.Println(remoteSrvs)
 		time.Sleep(time.Second * 3)
 	}
@@ -120,12 +123,9 @@ func acceptFromProxy(proxy net.Listener) {
 func initToRemote() {
 	for { //loop forever for creating new remote connections
 		sem <- 1 //limit number of connections.
-		//if int(atomic.LoadInt32(activeRemoteTCPCnt)) < maxConnPool {
 		go func() {
-			fmt.Println("initToRemote: connecting to new remote server.", atomic.LoadInt32(activeRemoteTCPCnt))
 			_remoteSrvs := remoteSrvs
 			upServers := len(_remoteSrvs)
-			//disabledSrvs := make([]int, len(remoteSrvs))
 			for { //loop until we get a good connection
 				if upServers <= 0 {
 					fmt.Println("initToRemote: no more servers.")
@@ -151,8 +151,6 @@ func initToRemote() {
 				}
 			}
 		}()
-		//}
-		//time.Sleep(time.Millisecond * 5)
 	}
 }
 
